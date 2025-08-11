@@ -1,48 +1,30 @@
-"""
-Ejemplo sencillo de Filtrado Colaborativo con Factorización Matricial (SGD)
-Este script genera una pequeña matriz de valoraciones de ejemplo y aplica un modelo de factorización para predecir valores faltantes.
-"""
-
 import numpy as np
-import pandas as pd
 
-# Datos de ejemplo (usuarios x ítems)
-# 0 significa que el usuario no ha valorado el ítem
-R = np.array([
+# Matriz de calificaciones (usuarios x productos)
+# 0 indica que no hay calificación
+ratings = np.array([
     [5, 3, 0, 1],
     [4, 0, 0, 1],
     [1, 1, 0, 5],
     [0, 0, 5, 4],
-    [0, 1, 5, 4]
-], dtype=float)
+    [1, 0, 4, 0]
+])
 
-# Parámetros
-num_users, num_items = R.shape
-k = 2          # Número de factores latentes
-alpha = 0.01   # Tasa de aprendizaje
-beta = 0.02    # Regularización
+# Aplicar SVD
+U, sigma, VT = np.linalg.svd(ratings, full_matrices=False)
 
-# Inicialización aleatoria de matrices P y Q
-P = np.random.rand(num_users, k)
-Q = np.random.rand(num_items, k)
+# Convertir sigma en matriz diagonal
+sigma = np.diag(sigma)
 
-# SGD simple
-for epoch in range(5000):
-    for u in range(num_users):
-        for i in range(num_items):
-            if R[u, i] > 0:
-                pred = np.dot(P[u, :], Q[i, :].T)
-                error = R[u, i] - pred
-                # Actualización
-                P[u, :] += alpha * (error * Q[i, :] - beta * P[u, :])
-                Q[i, :] += alpha * (error * P[u, :] - beta * Q[i, :])
+# Reconstrucción aproximada de la matriz original
+approx_ratings = np.dot(np.dot(U, sigma), VT)
 
-# Matriz reconstruida
-R_pred = np.dot(P, Q.T)
+print("Matriz original (0 indica sin calificar):")
+print(ratings)
 
-# Mostrar resultados
-print("Matriz original (0 = no valorado):")
-print(pd.DataFrame(R))
+print("\nMatriz reconstruida (predicciones de calificaciones):")
+print(np.round(approx_ratings, 2))
 
-print("\nMatriz predicha:")
-print(pd.DataFrame(np.round(R_pred, 2)))
+# Ejemplo: predicción para usuario 0, producto 2 (índice 0,2)
+prediccion = approx_ratings[0, 2]
+print(f"\nPredicción para el usuario 1 en el producto 3: {prediccion:.2f}")
